@@ -353,3 +353,180 @@
 		        model = Place
 
 
+# Display category name instead of ID
+
+
+	serializer.py >
+
+			from rest_framework.serializers import ModelSerializer
+			from rest_framework import serializers
+			from places.models import Place
+
+
+
+			class PlaceSerializer(ModelSerializer):
+			    class Meta:
+			        fields = ("id", "name", "featured_image", "place")
+			        model = Place
+
+
+			class PlaceDetailSerializer(ModelSerializer):
+
+			    category = serializers.SerializerMethodField()
+
+			    class Meta:
+			        fields = ("id", "name", "featured_image", "place", "description", "category")
+			        model = Place
+
+			    def get_category(self, instance):
+        return instance.category.name
+
+
+     views.py >
+
+			from rest_framework.response import Response
+			from rest_framework.decorators import api_view
+
+
+
+			from api.v1.places.serializers import PlaceSerializer, PlaceDetailSerializer
+			from places.models import Place
+
+			@api_view(['GET'])
+
+			def places(request):
+			    instances = Place.objects.filter(is_deleted=False)
+			    serializer = PlaceSerializer(instances, many=True, context={"request":request})
+			    response_data = {
+			        "status_code": "6000",
+			        "data" : serializer.data
+			    }
+			    return Response(response_data)
+
+
+
+
+			@api_view(['GET'])
+
+			def place(request,pk):
+			    if Place.objects.filter(pk=pk).exists():
+			        instance = Place.objects.get(pk=pk)
+			        serializer = PlaceDetailSerializer(instance, many=False, context={"request":request})
+			        response_data = {
+			            "status_code": "6000",
+			            "data" : serializer.data
+			        }
+			        return Response(response_data)
+			    else:
+			        response_data = {
+			            "status_code": "6001",
+			            "message" : "Place not found"
+			        }
+			        return Response(response_data)
+
+
+# Gallery images in Detail API
+
+
+	 init there are a list of items
+
+
+
+urls.py >
+
+		from django.urls import path
+		from django.conf.urls.static import static
+		from django.conf import settings
+		from . import views
+
+		urlpatterns = [
+		    path('', views.places),
+		    path('view/<int:pk>/', views.place),
+		] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+view.py >
+
+
+			from rest_framework.response import Response
+			from rest_framework.decorators import api_view
+
+
+
+			from api.v1.places.serializers import PlaceSerializer, PlaceDetailSerializer
+			from places.models import Place
+
+			@api_view(['GET'])
+
+			def places(request):
+			    instances = Place.objects.filter(is_deleted=False)
+			    serializer = PlaceSerializer(instances, many=True, context={"request":request})
+			    response_data = {
+			        "status_code": "6000",
+			        "data" : serializer.data
+			    }
+			    return Response(response_data)
+
+
+
+
+			@api_view(['GET'])
+
+			def place(request,pk):
+			    if Place.objects.filter(pk=pk).exists():
+			        instance = Place.objects.get(pk=pk)
+			        serializer = PlaceDetailSerializer(instance, many=False, context={"request":request})
+			        response_data = {
+			            "status_code": "6000",
+			            "data" : serializer.data
+			        }
+			        return Response(response_data)
+			    else:
+			        response_data = {
+			            "status_code": "6001",
+			            "message" : "Place not found"
+			        }
+			        return Response(response_data)
+
+
+serializer.py >
+
+
+		from rest_framework.serializers import ModelSerializer
+		from rest_framework import serializers
+		from places.models import Place, Gallery
+
+
+
+		class PlaceSerializer(ModelSerializer):
+		    class Meta:
+		        fields = ("id", "name", "featured_image", "place")
+		        model = Place
+		class GallerySerializer(ModelSerializer):
+		    class Meta:
+		        fields = ("id", "image")
+		        model = Gallery
+
+
+		class PlaceDetailSerializer(ModelSerializer):
+
+		    category = serializers.SerializerMethodField()
+		    gallery = serializers.SerializerMethodField()
+
+		    class Meta:
+		        fields = ("id", "name", "featured_image", "place", "description", "category","gallery")
+		        model = Place
+
+		    def get_category(self, instance):
+		        return instance.category.name
+		    
+		    def get_gallery(self, instance):
+		        request = self.context.get("request")
+		        image = Gallery.objects.filter(place=instance)
+		        serializer = GallerySerializer(image,many=True, context={"request":request})
+		        return serializer.data
+
+
+
+
+
+		        note this one ahs errors

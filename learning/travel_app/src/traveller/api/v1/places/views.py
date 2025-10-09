@@ -3,7 +3,7 @@ from rest_framework.decorators import api_view
 
 
 
-from api.v1.places.serializers import PlaceSerializer
+from api.v1.places.serializers import PlaceSerializer, PlaceDetailSerializer
 from places.models import Place
 
 @api_view(['GET'])
@@ -25,7 +25,7 @@ def places(request):
 def place(request,pk):
     if Place.objects.filter(pk=pk).exists():
         instance = Place.objects.get(pk=pk)
-        serializer = PlaceSerializer(instance, many=True, context={"request":request})
+        serializer = PlaceDetailSerializer(instance, many=False, context={"request":request})
         response_data = {
             "status_code": "6000",
             "data" : serializer.data

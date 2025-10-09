@@ -1,5 +1,6 @@
 from rest_framework.serializers import ModelSerializer
-from places.models import Place
+from rest_framework import serializers
+from places.models import Place, Gallery
 
 
 
@@ -7,10 +8,26 @@ class PlaceSerializer(ModelSerializer):
     class Meta:
         fields = ("id", "name", "featured_image", "place")
         model = Place
+class GallerySerializer(ModelSerializer):
+    class Meta:
+        fields = ("id", "image")
+        model = Gallery
 
 
 class PlaceDetailSerializer(ModelSerializer):
+
+    category = serializers.SerializerMethodField()
+    gallery = serializers.SerializerMethodField()
+
     class Meta:
-        fields = ("id", "name", "featured_image", "place", "description", "category")
+        fields = ("id", "name", "featured_image", "place", "description", "category","gallery")
         model = Place
 
+    def get_category(self, instance):
+        return instance.category.name
+    
+    def get_gallery(self, instance):
+        request = self.context.get("request")
+        image = Gallery.objects.filter(place=instance)
+        serializer = GallerySerializer(image,many=True, context={"request":request})
+        return serializer.data
