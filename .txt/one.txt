@@ -1,1 +1,452 @@
-1
+> Api Devolopment > intro and Proj Setup
+
+
+# intro
+
+	we're learning how to build web app using django
+	but hwo to connected frontend and backend 
+	WTF! right!
+
+
+	there are three parts
+
+
+	frontend - backend - database
+
+	we're using python django framework
+	but we need react also to make it efficient
+
+	we can represent data using api || json
+
+
+
+# talking about api's
+
+
+
+	eg :-
+
+			  "StatusCode": 6000,
+			  "data": [
+			    {
+			      "id": 30,
+			      "name": "Bukovel",
+			      "location": "Bukovel",
+			      "image": "https://trav...",
+			      "is_featured": false
+			    },
+			    {
+			      "id": 31
+			    }
+			  ]
+			
+			json is used for efficient transferring
+			between frontend and backend
+			with protections and security features
+
+
+# Project Setup
+
+		first we build a "to do app" so
+		let's get into it
+
+		we store in db 
+		and use django
+
+		sinc we're using postgre-sql 
+		=> pip install psycopg2-binary
+
+		blah blah blah created
+
+
+
+# Database Setup
+
+	1024
+	open postgre sql create db todo
+
+	open vs code 
+	> setting.py
+		> databasees
+
+
+		DATABASES = {
+		    'default': {
+		        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+		        'NAME': '<db_name>',
+		        'USER': '<db_username> default postgres',
+		        'PASSWORD': '<installation passosrd>',
+		        'HOST': '<db_hostname_or_ip> default localhost',
+		        'PORT': '<insalltion port>',
+		    }
+		}
+
+
+		cd ..\..
+		venv\Scripts\activate.bat
+		cd src/todo
+		python manage.py migrate
+		delete dbsqlite3.db
+		venv\Scripts\activate.bat
+		python manage.py runserver
+
+
+		create super user
+		cd src/todo
+		python manage.py createsuperuser
+			learning
+			Django@123
+
+		> setting.py installed apps 'tasks'
+
+
+
+# Model Structuring
+
+		current app i sismple one page app right
+
+		create a modle strucuter
+
+
+		TASKS
+
+		.task
+			id-autofield
+			title-charfield
+			is_completed-boolean
+			is_deleted - boolean
+			datetime-datetimefield-autnowadd
+
+
+
+# Creating Task Modle
+
+	=> python manage.py startapp tasks
+	setting.py > installed apps > 'tasks'
+
+
+	> models.py
+
+		class Task(models.Model):
+		    title = models.CharField(max_length=255)
+		    date_time = models.DateTimeField(auto_now_add=True)
+		    is_completed = models.BooleanField(default=False)
+		    is_deleted = models.BooleanField(default=False)
+
+		    class Meta:
+		        db_table = "tasks_tasks"
+
+		    def __str__(self):
+		        return self.title
+
+
+
+		=> python manage.py makemigrations
+		=> python manage.py migrate
+
+
+	> admin.py
+
+		from .models import Task
+
+		admin.site.register(Task)
+
+
+
+
+# Insatlling rest Framework
+
+	power ful web api dev kti is rest framework 
+
+	to install 
+
+
+	=> pip install djangorestframework
+	=> pip install markdown 
+	=> pip install django-filter
+
+	setting.py >
+
+				INSTALLED_APPS = [
+			    	...
+			   	 	'rest_framework',
+				]	
+
+		----if browsable api's 
+
+			mainapps
+				urlpatterns = [
+	   				 ...
+	   				 path('api-auth/', )include('rest_framework.urls'))
+				]
+
+
+
+
+# API folder structuring
+
+
+
+		like app we also need to structure apis
+		so create a folder in root dir
+
+
+		create folder  *api > *v1 > *{webappname}
+		inside *{webappname} > create file *views.py, *urls.py
+		inside api folder > *__init__.py
+		inside api/tasks folder > *__init__.py
+
+
+
+		v1 means version 1 of api
+		like differnet version of customised
+		api's so it's easier to manage crossplatform
+
+
+
+		main app > urls.py >  
+			urlpatterns 
+				path('api/v1/tasks/', include('api.v1.tasks.urls'))
+
+					so that's it it is finsihed 
+					folder structuring has come to an end
+
+
+# Building Tasks API
+
+
+			
+		so now we're writing list api so 
+
+		aah! it's for tasks
+
+		> api > v1 > tasks > urls.py
+
+
+			from django.urls import path
+			from api.v1.tasks import views
+
+
+			urlpatterns = [
+			    path('', views.tasks, name='tasks'),
+			]
+
+
+
+		> api> v1> tasks > views.py
+
+
+
+				from rest_framework.response import Response
+				from rest_framework.decorators import api_view
+
+
+				@api_view(["GET"])
+				def tasks(request):
+				    return Response("Hello, World!")
+
+
+# Tasks List api
+
+
+	create file *serializers.py on tasks folder
+	for converting to json
+
+	serializers.py >
+
+
+			from rest_framework.serializers import ModelSerializer
+			from tasks.models import Task
+
+
+			class TaskSerializer(ModelSerializer):
+			    class Meta:
+			        model = Task
+			        fields = ('id', 'title', 'is_completed')
+
+
+
+	view.py >
+
+		from rest_framework.response import Response
+		from rest_framework.decorators import api_view
+
+		from api.v1.tasks.serializers import TaskSerializer
+		from tasks.models import Task
+
+
+
+		@api_view(["GET"])
+		def tasks(request):
+		    instances = Task.objects.filter(is_deleted=False)
+		    serializer = TaskSerializer(instances , many=True)
+		    return Response(serializer.data)
+
+
+
+
+# Creating Post Request
+
+
+	how to create a data using post method
+
+	
+	> urls.py
+
+
+			urlpatterns = [
+			    path('', views.tasks, name='tasks'),
+			    path("create/", views.create_task)
+			]
+
+
+
+	> views.py
+
+			@api_view(["POST"])
+			def create_task(request):
+			    serializer = TaskSerializer(data=request.data)
+			    if serializer.is_valid():
+			        serializer.save()
+
+			        response_data = {
+			            "status_code" : 6000,
+			            "message" : "Success"
+			        }
+
+			        return Response(response_data)
+			    else:
+
+			        response_data = {
+			            "status_code" : 6001,
+			            "message" : "Validation Error",
+			            "data" : serializer.errors
+			        }
+
+			        return Response(response_data)
+
+
+
+# Update Task Status
+
+
+	urls.py >
+
+		urlpatterns = [
+		    path('', views.tasks, name='tasks'),
+		    path("create/", views.create_task),
+		    path("update/<int:pk>/", views.update_task)
+		]
+
+
+
+
+
+	view.py > 
+
+	@api_view(["POST"])
+	def update_task(request, pk):
+	    if Task.objects.filter(pk=pk).exists():
+	        instance = Task.objects.get(pk=pk)
+	        serializer = TaskSerializer(instance=instance, data=request.data, partial=True)
+	        if serializer.is_valid():
+	            serializer.save()
+
+	            response_data = {
+	                "status_code" : 6000,
+	                "message" : "Success"
+	            }
+
+	            return Response(response_data)
+	        else:
+
+	            response_data = {
+	                "status_code" : 6001,
+	                "message" : "Validation Error",
+	                "data" : serializer.errors
+	            }
+
+	            return Response(response_data)
+	        
+
+	    else:
+
+	        response_data = {
+	                "status_code" : 6001,
+	                "message" : "Not Found",
+	            }
+	        return Response(response_data)
+
+
+
+# delete A Task
+
+
+	view.py >
+
+
+		@api_view(["POST"])
+		def delete_task(request, pk):
+		    if Task.objects.filter(pk=pk).exists():
+		        instance = Task.objects.get(pk=pk)
+		        serializer = TaskSerializer(instance=instance, data=request.data, partial=True)
+		        if serializer.is_valid():
+		            serializer.save()
+
+		            response_data = {
+		                "status_code" : 6000,
+		                "message" : "Success Deleted u Stupid"
+		            }
+
+		            return Response(response_data)
+		        else:
+
+		            response_data = {
+		                "status_code" : 6001,
+		                "message" : "Validation Error",
+		                "data" : serializer.errors
+		            }
+
+		            return Response(response_data)
+		        
+
+		    else:
+
+		        response_data = {
+		                "status_code" : 6001,
+		                "message" : "Not Found",
+		            }
+		        return Response(response_data)
+
+
+
+
+	urls.py >
+
+
+    	path("delete/<int:pk>/", views.delete_task)
+
+
+
+	serializer >
+
+		 fields = ('id', 'title', 'is_completed', 'is_deleted')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+----------------------------------------------------------------

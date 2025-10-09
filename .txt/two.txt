@@ -1,0 +1,355 @@
+> api dev > traveller app API
+
+
+
+
+# app Overview
+
+
+	idk just reivising the travel app func
+
+
+
+# Model Strucutre
+
+							Places
+
+
+		Place
+
+			name
+			featured_image
+			place
+			category -fk
+			description
+
+		Category
+
+			image
+			title
+
+		Gallery
+
+			place -fk
+			image
+
+
+# create new Project
+
+
+	=> 
+		python3 -m venv venv
+		venv\Scripts\activate.bat
+		mkdir src
+		pip install django psycopg2-binary djangorestframework
+		cd src
+		django-admin startproject traveller
+		cd traveller
+		python manage.py runserver 
+
+		create db traveller in postgresql
+
+
+
+	settings.py db >
+
+			DATABASES = {
+			     'default': {
+			      'ENGINE': 'django.db.backends.postgresql_psycopg2',
+				      'NAME': 'traveller',
+				        'USER': 'postgres',
+				       'PASSWORD': '2102',
+				       'HOST': 'localhost',
+				      'PORT': '1024',
+					    }
+					}
+
+		venv\Scripts\activate.bat
+		python manage.py migrate auth
+		python manage.py migrate
+		python manage.py createsuperuser
+		python
+		Django@123
+
+
+# Registering models
+
+
+	python manage.py startapp places
+
+
+
+	models.py >
+
+				from django.db import models
+
+				# Create your models here.
+
+
+
+				class Place(models.Model):
+				    name = models.CharField(max_length=200)
+				    featured_image = models.ImageField(upload_to='places/images/', null=True, blank=True)
+				    place = models.CharField(max_length=200)
+				    category = models.ForeignKey("Category", on_delete=models.CASCADE, related_name="places")
+				    description = models.TextField()
+				    is_deleted = models.BooleanField(default=False)
+
+				    class Meta:
+				        db_table = "places_place"
+				        verbose_name_plural = "Places"
+
+				    def __str__(self):
+				        return self.name
+
+
+				class Category(models.Model):
+				    image = models.ImageField(upload_to='categories/images/', null=True, blank=True)
+				    name = models.CharField(max_length=200)
+
+				    class Meta:
+				        db_table = "places_category"
+				        verbose_name_plural = "Categories"
+
+				    def __str__(self):
+				        return self.name
+
+
+				class Gallery(models.Model):
+				    place = models.ForeignKey(Place, related_name='gallery', on_delete=models.CASCADE)
+				    image = models.ImageField(upload_to='places/gallery/', null=True, blank=True)
+
+				    class Meta:
+				        db_table = "places_gallery"
+				        verbose_name_plural = "Galleries"
+
+				    def __str__(self):
+				        return str(self.id)
+
+	pip install pillow
+
+
+
+	setting.py >
+
+		installed_apps...>
+			'places'
+
+
+
+
+	=>
+		python manage.py makemigrations
+		python manage.py migrate
+
+
+
+
+	admin.py >
+
+		from django.contrib import admin
+		from places.models import Place, Category, Gallery
+
+		# Register your models here.
+
+
+
+		admin.site.register(Place)
+		admin.site.register(Category)
+		admin.site.register(Gallery)
+
+
+
+
+# Admin Panel And Content Uploading
+
+
+	setting.py bottom >
+
+			STATIC_URL = '/static/'
+
+			MEDIA_URL = '/media/'
+			MEDIA_ROOT = BASE_DIR / 'media'
+
+
+
+	admin.py >
+
+			from django.contrib import admin
+			from places.models import Place, Category, Gallery
+
+
+			class GalleryAdmin(admin.TabularInline):
+			    list_display = ["place", "image"]
+			    model = Gallery
+
+			class PlaceAdmin(admin.ModelAdmin):
+			    list_display = ["name", "place", "category"]
+
+			    inline = [GalleryAdmin]
+
+			admin.site.register(Place, PlaceAdmin)
+			admin.site.register(Category)
+
+
+
+
+# Creating Places API
+
+	    mkdir api
+		cd api
+		ni __init__.py
+		mkdir v1
+		cd v1
+		ni __init__.py
+		mkdir places
+		cd places
+		ni views.py
+		ni urls.py	
+
+
+		pip install djangorestframework
+		pip install markdown       # Markdown support for the browsable API.
+		pip install django-filter  # Filtering support
+
+
+		INSTALLED_APPS = [
+		    ...
+		    'rest_framework',
+		]
+
+		urlpatterns = [
+		    ...
+		    path('api-auth/', include('rest_framework.urls'))
+		]
+
+
+
+	app > urls.py > urlpatterns
+
+		path('api/v1/placed/', include("api.v1.places.urls"))
+
+	v1 > places > urls.py
+
+		from django.urls import path, include
+		from api.v1.places import views
+
+		urlpatterns = [
+			   path('', views.places)
+		]
+
+	v1 > places > views.py
+
+
+
+			from rest_framework.response import Response
+			from rest_framework.decorators import api_view
+
+
+			@api_view(['GET'])
+			def places(request):
+			    return Response("hi")
+
+
+# Places Serializer
+
+	new file in v1 places *serializers.py
+
+
+
+
+	serializeers.py >
+
+		from rest_framework.serializers import ModelSerializer
+			from places.models import Place
+
+
+			class PlaceSerializer(ModelSerializer):
+			    class Meta:
+			        fields = ("id", "name", "featured_image", "place")
+			        model = Place
+
+
+
+	view.py >
+
+		from rest_framework.response import Response
+		from rest_framework.decorators import api_view
+
+
+
+		from api.v1.places.serializers import PlaceSerializer
+		from places.models import Place
+
+		@api_view(['GET'])
+
+		def places(request):
+		    instances = Place.objects.filter(is_deleted=False)
+		    serializer = PlaceSerializer(instances, many=True, context={"request":request})
+		    response_data = {
+		        "status_code": "6000",
+		        "data" : serializer.data
+		    }
+		    return Response(response_data)
+
+
+
+# Place Detail View
+
+
+	urls.py > urlpattenrs >
+
+		urlpatterns = [
+		    path('', views.places),
+		    path('view<int:pk>/', views.place),
+		]
+
+
+
+
+
+
+	view.py >
+
+
+
+
+
+		@api_view(['GET'])
+
+		def place(request,pk):
+		    if Place.objects.filter(pk=pk).exists():
+		        instance = Place.objects.get(pk=pk)
+		        serializer = PlaceSerializer(instance, many=True, context={"request":request})
+		        response_data = {
+		            "status_code": "6000",
+		            "data" : serializer.data
+		        }
+		        return Response(response_data)
+		    else:
+		        response_data = {
+		            "status_code": "6001",
+		            "message" : "Place not found"
+		        }
+		        return Response(response_data)
+
+
+	serializer.py >
+
+		from rest_framework.serializers import ModelSerializer
+		from places.models import Place
+
+
+
+		class PlaceSerializer(ModelSerializer):
+		    class Meta:
+		        fields = ("id", "name", "featured_image", "place")
+		        model = Place
+
+
+		class PlaceDetailSerializer(ModelSerializer):
+		    class Meta:
+		        fields = ("id", "name", "featured_image", "place", "description", "category")
+		        model = Place
+
+
