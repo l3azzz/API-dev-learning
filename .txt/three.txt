@@ -1,0 +1,391 @@
+--AUTHENTICATION--
+
+# Installing PostMan
+
+	now we use postman for api platform
+	used for api testing and documentation it think
+
+	for browsing api we use postman
+	to install go to postman.com and download it 
+
+	and open it to use it
+
+	first sing in and create a new request GET
+	then https://localhost:8000/api/v1/places
+	we will get it in pretty format of the api os it's much better
+	so ..
+
+
+	u know our api's can be accessed by anyone so we want security
+
+	that's what we learn on next lesson let's gooo!
+
+
+
+# Installing JWT PACKAGE
+
+
+
+	FOR learning we can go to authentication guide
+	provided by restframework
+
+
+	BASIC auth - send username and password to server
+				 not secure 
+
+	Token auth - first it generates and we can use token auth
+				 but it saves in teh db
+
+	but we use JWT YAHOO!
+
+	JWT IS THE BEST THING
+	THAT IS (JSON WEB TOKENS) can be generated and verified
+
+	it's highly tough to crack it
+
+
+	to install serach simple JWT 
+
+	pip install djangorestframework-simplejwt
+
+
+
+
+# Generating Token
+
+		go to 	https://www.django-rest-framework.org/api-guide/ authentication/	
+			  https://django-rest-framework-simplejwt.readthedocs.io/en/latest/getting_started.html#installation
+
+
+
+
+	add this to  thensetting.py bottom >
+
+	REST_FRAMEWORK = {
+	    'DEFAULT_AUTHENTICATION_CLASSES': [
+	        'rest_framework.authentication.BasicAuthentication',
+	        'rest_framework.authentication.SessionAuthentication',
+	        'rest_framework_simplejwt.authentication.JWTAuthentication',
+	    ]
+	}
+
+
+	urls.py >
+
+		from rest_framework_simplejwt.views import (
+	    TokenObtainPairView,
+	    TokenRefreshView,
+		)
+
+		urlpatterns = [
+		    ...
+		    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+		    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+		    ...
+		]
+
+
+
+
+		AND ON API V1 ADD FOLDER * auth > * __init__.py, *urls.py
+
+
+		and on urls.py main app >
+			path('api/v1/auth/',include("api.v1.auth.urls"))
+
+
+		and on urls.py auth >
+
+				from django.urls import path
+				from rest_framework_simplejwt.views import (
+				    TokenObtainPairView,
+				    TokenRefreshView,
+				)
+
+				urlpatterns = [
+				    path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+				    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+				]
+
+
+
+		http://127.0.0.1:8000/api/v1/auth/token/
+
+		body 
+		form-data
+
+		add username and password
+
+		ther are refresh tokena nd access token
+		acces token used for loginin gbut limited time 
+		refresh token used to refresh the outdated current acesstoken
+
+
+
+# Creating protected view
+	
+	to use token we need a protect url
+
+	so create it in api > places urls.py >
+
+   		
+  		  path('protected/<int:pk>/', views.protected),
+
+  	and on view.py places we have to copy place class and name protected
+
+
+
+  	but we have to include || import these into view.py
+		  	
+		from rest_framework.decorators import api_view, permission_classes
+		from rest_framework.permissions import IsAuthenticated
+
+	and add decorator
+	on class
+
+	@permission_classes([IsAuthenticated])
+
+	for allowing everyone we acan use AllowAny
+
+
+
+# Create a new user
+
+	we need email , name , and password
+
+
+	so we are creating a url in auth > urls.py
+
+	 path("create/")
+
+
+	 auth > *view.py >
+		from rest_framework.response import Response
+		from rest_framework.decorators import api_view, permission_classes
+		from rest_framework.permissions import IsAuthenticated, AllowAny
+		from django.contrib.auth.models import User
+
+
+		from api.v1.places.serializers import PlaceSerializer, PlaceDetailSerializer
+		from places.models import Place
+
+
+
+		@api_view(["POST"])
+		@permission_classes([AllowAny])
+		def create(request):
+
+		    email = request.data['email']
+		    password = request.data['password']
+		    name = request.data['name']
+
+		    print("email", email)
+		    print("password", password)
+		    print("name", name)
+
+
+		    if not User.objects.filter(username=email).exists():
+		    
+		        context = {
+		            "request": request
+		        }
+
+		        User.objects.create_user(
+		            username=email,
+		            password=password,
+		            first_name=name
+		        )
+		        
+		        
+		        response_data = {
+		            "status_code": 6000,
+		            "data": "User created successfully"
+		        }
+		    else: 
+
+		         response_data = {
+		            "status_code": 6001,
+		            "data": "User Exists"
+		        }
+		    return Response(response_data)
+ urls.py > 
+
+ 	from django.urls import path
+	from rest_framework_simplejwt.views import (
+	    TokenObtainPairView,
+	    TokenRefreshView,
+	)
+	from api.v1.auth import views as views
+
+	urlpatterns = [
+	    path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+	    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+	    path("create/", views.create, name="create_user"),
+	]
+
+
+
+# Passing Acess Token 
+
+	pip install requests
+
+
+
+	view.py >
+
+			from rest_framework.response import Response
+			from rest_framework.decorators import api_view, permission_classes
+			from rest_framework.permissions import IsAuthenticated, AllowAny
+			from django.contrib.auth.models import User
+			import requests
+
+			from api.v1.places.serializers import PlaceSerializer, PlaceDetailSerializer
+			from places.models import Place
+
+
+
+			@api_view(["POST"])
+			@permission_classes([AllowAny])
+			def create(request):
+
+			    email = request.data['email']
+			    password = request.data['password']
+			    name = request.data['name']
+
+			    print("email", email)
+			    print("password", password)
+			    print("name", name)
+
+
+			    if not User.objects.filter(username=email).exists():
+			    
+			        context = {
+			            "request": request
+			        }
+
+			        User.objects.create_user(
+			            username=email,
+			            password=password,
+			            first_name=name
+			        )
+			        
+			        headers = {
+			            "Conent-Type": "application/json"
+			        }
+			        data = f'"username": "{email}", "password": "{password}", "name": "{name}"'
+			        final_data = "{" + data + "}"
+			       
+			        protocol = "http://"
+			        if request.is_secure():
+			            protocol = "https://"
+			        host = requests.get_host()
+			        url = protocol + host +  "localhost:8000/api/v1/auth/token/"
+			        
+			        response = requests.post(url, headers = headers , data= final_data)
+
+			        if response.status_code == 200:
+			            response_data = {
+			                "status_code": 6000,
+			                "data": response.json(),
+			                "message": "Account created successfully",
+			            }
+			        else : 
+			            response_data = {
+			                "status_code": 6002,
+			                "data": "Error in obtaining token",
+			            }
+			        response_data = {
+			            "status_code": 6000,
+			            "data": "User created successfully"
+			        }
+			    else: 
+
+			         response_data = {
+			            "status_code": 6001,
+			            "data": "User Exists"
+			        }
+			    return Response(response_data)
+
+# Json.dumps for passing data
+	
+
+
+	view.py >
+
+		from rest_framework.response import Response
+		from rest_framework.decorators import api_view, permission_classes
+		from rest_framework.permissions import IsAuthenticated, AllowAny
+		from django.contrib.auth.models import User
+		import requests
+
+		from api.v1.places.serializers import PlaceSerializer, PlaceDetailSerializer
+		from places.models import Place
+		import json
+
+
+
+		@api_view(["POST"])
+		@permission_classes([AllowAny])
+		def create(request):
+
+		    email = request.data['email']
+		    password = request.data['password']
+		    name = request.data['name']
+
+		    print("email", email)
+		    print("password", password)
+		    print("name", name)
+
+
+		    if not User.objects.filter(username=email).exists():
+		    
+		        context = {
+		            "request": request
+		        }
+
+		        User.objects.create_user(
+		            username=email,
+		            password=password,
+		            first_name=name
+		        )
+		        
+		        headers = {
+		            "Conent-Type": "application/json"
+		        }
+		        # data = f'"username": "{email}", "password": "{password}", "name": "{name}"'
+		        # final_data = "{" + data + "}"
+		        data = {
+		            "username": email,
+		            "password": password
+		        }
+		       
+		        protocol = "http://"
+		        if request.is_secure():
+		            protocol = "https://"
+		        host = requests.get_host()
+		        url = protocol + host +  "localhost:8000/api/v1/auth/token/"
+		        
+		        response = requests.post(url, headers = headers , data= json.dumps(data))
+
+		        if response.status_code == 200:
+		            response_data = {
+		                "status_code": 6000,
+		                "data": response.json(),
+		                "message": "Account created successfully",
+		            }
+		        else : 
+		            response_data = {
+		                "status_code": 6002,
+		                "data": "Error in obtaining token",
+		            }
+		        response_data = {
+		            "status_code": 6000,
+		            "data": "User created successfully"
+		        }
+		    else: 
+
+		         response_data = {
+		            "status_code": 6001,
+		            "data": "User Exists"
+		        }
+		    return Response(response_data)

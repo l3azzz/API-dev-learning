@@ -1,0 +1,39 @@
+-----Search-And-Pagination----
+
+
+
+# place search with name
+
+
+	first to add search function 
+	we use /?q=Hello   query = hello
+
+
+
+	for that view.py places >
+			q = (request.GET.get("q"))
+		    serializer = PlaceSerializer(instances, many=True, context={"request":request})
+		    if  q: 
+		        instances = instances.filter(name_istartswith=q)
+
+
+
+# places search with multiple fields
+
+	from django.db.models import Q
+	   instances = instances.filter(Q(name_istartswith=q) | Q(place__icontains=q) )
+
+
+# Catefory Field
+
+	........
+
+# Multiple category field 
+
+	.........
+
+
+# API PAGINATION
+
+
+	..........
